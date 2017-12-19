@@ -14,7 +14,7 @@ type VsCount struct {
 func main() {
 	fmt.Println("Welcome to Territory Wars Report")
 	fmt.Println("--------------------------------")
-	fmt.Println("Please report any issue on GitHub repo")
+	fmt.Println("Please report any issue on https://github.com/rentziass/territory_wars_report")
 	fmt.Println("Come say hi on https://discord.gg/YGUa2Fy")
 	fmt.Println("")
 	fmt.Printf("Enter your guild swgoh.gg's URL: ")
