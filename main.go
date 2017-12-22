@@ -6,9 +6,40 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-type VsCount struct {
+type ComparisonType int
+const (
+	IsOwn ComparisonType = iota
+	IsOpponent
+)
+
+type ZetaCount struct {
 	Own int
 	Opponent int
+}
+
+type ToonCount struct {
+	Total int
+	Gear10 int
+	Gear11 int
+	Gear12 int
+	SixStars int
+	SevenStars int
+}
+
+type ToonComparison struct {
+	Own *ToonCount
+	Opponent *ToonCount
+}
+
+type ShipCount struct {
+	Total int
+	SixStars int
+	SevenStars int
+}
+
+type ShipComparison struct {
+	Own *ShipCount
+	Opponent *ShipCount
 }
 
 func main() {
@@ -24,8 +55,9 @@ func main() {
 	fmt.Printf("Enter your opponent swgoh.gg's URL: ")
 	fmt.Scan(&opponentGuildURL)
 
-	zetas := map[string]*VsCount{}
-	toons := map[string]*VsCount{}
+	zetas := map[string]*ZetaCount{}
+	toons := map[string]*ToonComparison{}
+	ships := map[string]*ShipComparison{}
 
 	// Own guild
 	ownGuild, err := guild.GetGuild(ownGuildURL)
@@ -38,7 +70,7 @@ func main() {
 	for _, m := range ownGuild.Members {
 		for _, z := range m.Zetas {
 			if zetas[z] == nil {
-				zetas[z] = &VsCount{Own: 1}
+				zetas[z] = &ZetaCount{Own: 1}
 				continue
 			}
 
@@ -53,13 +85,17 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		err = m.GetShipRoster()
+		if err != nil {
+			panic(err)
+		}
 
 		for _, t := range m.Toons {
-			if toons[t] == nil {
-				toons[t] = &VsCount{Own:1}
-				continue
-			}
-			toons[t].Own++
+			addToonToComparison(toons, t, IsOwn)
+		}
+
+		for _, s := range m.Ships {
+			addShipToComparison(ships, s, IsOwn)
 		}
 		fmt.Printf("\rProcessed %v/%v toon rosters for %v...", i+1, total, ownGuild.Name)
 	}
@@ -76,7 +112,7 @@ func main() {
 	for _, m := range opponentGuild.Members {
 		for _, z := range m.Zetas {
 			if zetas[z] == nil {
-				zetas[z] = &VsCount{Opponent: 1}
+				zetas[z] = &ZetaCount{Opponent: 1}
 				continue
 			}
 
@@ -93,23 +129,23 @@ func main() {
 		}
 
 		for _, t := range m.Toons {
-			if toons[t] == nil {
-				toons[t] = &VsCount{Opponent:1}
-				continue
-			}
-			toons[t].Opponent++
+			addToonToComparison(toons, t, IsOpponent)
 		}
-		fmt.Printf("\rProcessed %v/%v toon rosters for %v...", i+1, total, ownGuild.Name)
+
+		for _, s := range m.Ships {
+			addShipToComparison(ships, s, IsOpponent)
+		}
+		fmt.Printf("\rProcessed %v/%v toon rosters for %v...", i+1, total, opponentGuild.Name)
 	}
 	fmt.Print("\n")
 
-	writeToXLSX(zetas, toons, ownGuild, opponentGuild)
+	writeToXLSX(zetas, toons, ships, ownGuild, opponentGuild)
 
 	fmt.Println()
 	fmt.Println("Done!")
 }
 
-func writeToXLSX(zetas, toons map[string]*VsCount, ownGuild, opponentGuild *guild.Guild) error {
+func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, ships map[string]*ShipComparison, ownGuild, opponentGuild *guild.Guild) error {
 	excelFileName := "./" + ownGuild.Name + " vs " + opponentGuild.Name +  ".xlsx"
 	xlFile := xlsx.NewFile()
 
@@ -132,21 +168,97 @@ func writeToXLSX(zetas, toons map[string]*VsCount, ownGuild, opponentGuild *guil
 	}
 
 	// Toons
-	toonsSheet, err := xlFile.AddSheet("Toons")
+	// Own
+	ownToonsSheet, err := xlFile.AddSheet("Toons - " + ownGuild.Name)
 	if err != nil {
 		panic(err)
 	}
 
-	header = toonsSheet.AddRow()
+	header = ownToonsSheet.AddRow()
 	header.AddCell().SetString("Toon")
-	header.AddCell().SetString(ownGuild.Name)
-	header.AddCell().SetString(opponentGuild.Name)
+	header.AddCell().SetString("Total")
+	header.AddCell().SetString("6 Stars")
+	header.AddCell().SetString("7 Stars")
+	header.AddCell().SetString("Gear 10")
+	header.AddCell().SetString("Gear 11")
+	header.AddCell().SetString("Gear 12")
 
 	for t, c := range toons {
-		r := toonsSheet.AddRow()
+		r := ownToonsSheet.AddRow()
 		r.AddCell().SetString(t)
-		r.AddCell().SetInt(c.Own)
-		r.AddCell().SetInt(c.Opponent)
+		r.AddCell().SetInt(c.Own.Total)
+		r.AddCell().SetInt(c.Own.SixStars)
+		r.AddCell().SetInt(c.Own.SevenStars)
+		r.AddCell().SetInt(c.Own.Gear10)
+		r.AddCell().SetInt(c.Own.Gear11)
+		r.AddCell().SetInt(c.Own.Gear12)
+	}
+
+	// Opponent
+	opponentToonsSheet, err := xlFile.AddSheet("Toons - " + opponentGuild.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	header = opponentToonsSheet.AddRow()
+	header.AddCell().SetString("Toon")
+	header.AddCell().SetString("Total")
+	header.AddCell().SetString("6 Stars")
+	header.AddCell().SetString("7 Stars")
+	header.AddCell().SetString("Gear 10")
+	header.AddCell().SetString("Gear 11")
+	header.AddCell().SetString("Gear 12")
+
+	for t, c := range toons {
+		r := opponentToonsSheet.AddRow()
+		r.AddCell().SetString(t)
+		r.AddCell().SetInt(c.Opponent.Total)
+		r.AddCell().SetInt(c.Opponent.SixStars)
+		r.AddCell().SetInt(c.Opponent.SevenStars)
+		r.AddCell().SetInt(c.Opponent.Gear10)
+		r.AddCell().SetInt(c.Opponent.Gear11)
+		r.AddCell().SetInt(c.Opponent.Gear12)
+	}
+
+	// Ships
+	// Own
+	ownShipsSheet, err := xlFile.AddSheet("Ships - " + ownGuild.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	header = ownShipsSheet.AddRow()
+	header.AddCell().SetString("Ship")
+	header.AddCell().SetString("Total")
+	header.AddCell().SetString("6 Stars")
+	header.AddCell().SetString("7 Stars")
+
+	for t, c := range ships {
+		r := ownShipsSheet.AddRow()
+		r.AddCell().SetString(t)
+		r.AddCell().SetInt(c.Own.Total)
+		r.AddCell().SetInt(c.Own.SixStars)
+		r.AddCell().SetInt(c.Own.SevenStars)
+	}
+
+	// Opponent
+	opponentShipsSheet, err := xlFile.AddSheet("Ships - " + opponentGuild.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	header = opponentShipsSheet.AddRow()
+	header.AddCell().SetString("Ship")
+	header.AddCell().SetString("Total")
+	header.AddCell().SetString("6 Stars")
+	header.AddCell().SetString("7 Stars")
+
+	for t, c := range ships {
+		r := opponentShipsSheet.AddRow()
+		r.AddCell().SetString(t)
+		r.AddCell().SetInt(c.Opponent.Total)
+		r.AddCell().SetInt(c.Opponent.SixStars)
+		r.AddCell().SetInt(c.Opponent.SevenStars)
 	}
 
 	xlFile.Save(excelFileName)

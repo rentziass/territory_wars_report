@@ -17,7 +17,8 @@ type Member struct {
 	URL string
 	GP int64
 	Zetas []string
-	Toons []string
+	Toons []*Toon
+	Ships []*Ship
 }
 
 func GetGuild(url string) (*Guild, error) {
