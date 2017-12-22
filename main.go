@@ -78,7 +78,7 @@ func main() {
 		}
 	}
 
-	// Toons
+	// Toons & Ships
 	total := len(ownGuild.Members)
 	for i, m := range ownGuild.Members {
 		err := m.GetToonRoster()
@@ -120,10 +120,14 @@ func main() {
 		}
 	}
 
-	// Toons
+	// Toons & Ships
 	total = len(opponentGuild.Members)
 	for i, m := range opponentGuild.Members {
 		err := m.GetToonRoster()
+		if err != nil {
+			panic(err)
+		}
+		err = m.GetShipRoster()
 		if err != nil {
 			panic(err)
 		}
