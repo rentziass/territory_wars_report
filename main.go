@@ -2,43 +2,45 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/rentziass/territory_wars_report/guild"
 	"github.com/tealeg/xlsx"
 )
 
 type ComparisonType int
+
 const (
 	IsOwn ComparisonType = iota
 	IsOpponent
 )
 
 type ZetaCount struct {
-	Own int
+	Own      int
 	Opponent int
 }
 
 type ToonCount struct {
-	Total int
-	Gear10 int
-	Gear11 int
-	Gear12 int
-	SixStars int
+	Total      int
+	Gear10     int
+	Gear11     int
+	Gear12     int
+	SixStars   int
 	SevenStars int
 }
 
 type ToonComparison struct {
-	Own *ToonCount
+	Own      *ToonCount
 	Opponent *ToonCount
 }
 
 type ShipCount struct {
-	Total int
-	SixStars int
+	Total      int
+	SixStars   int
 	SevenStars int
 }
 
 type ShipComparison struct {
-	Own *ShipCount
+	Own      *ShipCount
 	Opponent *ShipCount
 }
 
@@ -150,7 +152,7 @@ func main() {
 }
 
 func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, ships map[string]*ShipComparison, ownGuild, opponentGuild *guild.Guild) error {
-	excelFileName := "./" + ownGuild.Name + " vs " + opponentGuild.Name +  ".xlsx"
+	excelFileName := "./" + ownGuild.Name + " vs " + opponentGuild.Name + ".xlsx"
 	xlFile := xlsx.NewFile()
 
 	// Zetas
@@ -173,7 +175,7 @@ func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, 
 
 	// Toons
 	// Own
-	ownToonsSheet, err := xlFile.AddSheet("Toons - " + ownGuild.Name)
+	ownToonsSheet, err := xlFile.AddSheet("Toons - Own")
 	if err != nil {
 		panic(err)
 	}
@@ -199,7 +201,7 @@ func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, 
 	}
 
 	// Opponent
-	opponentToonsSheet, err := xlFile.AddSheet("Toons - " + opponentGuild.Name)
+	opponentToonsSheet, err := xlFile.AddSheet("Toons - Opponent")
 	if err != nil {
 		panic(err)
 	}
@@ -226,7 +228,7 @@ func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, 
 
 	// Ships
 	// Own
-	ownShipsSheet, err := xlFile.AddSheet("Ships - " + ownGuild.Name)
+	ownShipsSheet, err := xlFile.AddSheet("Ships - Own")
 	if err != nil {
 		panic(err)
 	}
@@ -246,7 +248,7 @@ func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, 
 	}
 
 	// Opponent
-	opponentShipsSheet, err := xlFile.AddSheet("Ships - " + opponentGuild.Name)
+	opponentShipsSheet, err := xlFile.AddSheet("Ships - Opponent")
 	if err != nil {
 		panic(err)
 	}
@@ -268,4 +270,3 @@ func writeToXLSX(zetas map[string]*ZetaCount, toons map[string]*ToonComparison, 
 	xlFile.Save(excelFileName)
 	return nil
 }
-
